@@ -180,3 +180,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 data/train.csv
+data/data.zip
+data/fastest_routes_test.csv
+data/fastest_routes_train_part_1.csv
+data/fastest_routes_train_part_2.csv
+data/weather_data_nyc_centralpark_2016.xls
