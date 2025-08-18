@@ -188,3 +188,7 @@ data/weather_data_nyc_centralpark_2016.xls
 code in Python.py
 catboost_info/learn/events.out.tfevents
 /catboost_info
+data/df_clean.csv
+data/df_test.csv
+data/df_train_full.csv
+sql/init - Copy.sql
