@@ -231,15 +231,7 @@ SELECT
   EXTRACT(HOUR   FROM md.pickup_datetime)::INT AS hour,
 
   -- 3) Day-of-week code (0=Sun,1=Sat,2=Mon…6=Fri)
-  CASE EXTRACT(DOW FROM md.pickup_datetime)
-    WHEN 0 THEN 0
-    WHEN 6 THEN 1
-    WHEN 1 THEN 2
-    WHEN 2 THEN 3
-    WHEN 3 THEN 4
-    WHEN 4 THEN 5
-    WHEN 5 THEN 6
-  END AS wday,
+  (EXTRACT(ISODOW FROM md.pickup_datetime)::INT - 1) AS wday,
 
   -- 4) Minute and minute_oftheday
   EXTRACT(MINUTE FROM md.pickup_datetime)::INT AS minute,
@@ -301,12 +293,14 @@ DROP TABLE IF EXISTS weather_features;
 
 CREATE TABLE weather_features AS
 SELECT
-  -- normalize date into a real DATE, handling both styles
   CASE
-    WHEN weather_raw.date ~ '^\d{4}-\d{1,2}-\d{1,2}$' THEN
-      TO_DATE(weather_raw.date, 'YYYY-MM-DD')
-    ELSE
-      TO_DATE(weather_raw.date, 'FMDD-FMMM-YYYY')
+    WHEN weather_raw.date ~ '^\d{4}-\d{1,2}-\d{1,2}$'
+    THEN TO_DATE(weather_raw.date, 'YYYY-MM-DD')
+    
+    WHEN weather_raw.date ~ '^\d{1,2}-\d{1,2}-\d{4}$'
+    THEN TO_DATE(weather_raw.date, 'FMDD-FMMM-YYYY')
+    
+    ELSE NULL
   END AS date,
 
   COALESCE(NULLIF(weather_raw.precipitation, 'T')::NUMERIC, 0.01) AS rain,
@@ -657,9 +651,12 @@ SELECT
   total_travel_time
 FROM df_train_full
 WHERE 
-  trip_duration < 86400          -- under 24h
-  AND jfk_dist_pick < 300000     -- under 300 km
-  AND jfk_dist_drop < 300000;
+  trip_duration < 86400
+  AND jfk_dist_pick < 300000
+  AND jfk_dist_drop < 300000
+  AND bearing IS NOT NULL
+  AND bearing <> 'Infinity';
+
 
 -- 5) Optional: add indexes to speed up downstream queries
 CREATE INDEX ON df_train_full(trip_duration);
