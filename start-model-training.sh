@@ -1,15 +1,20 @@
 #!/bin/bash
 
-echo "🧠 Starting Python Model Trainer container..."
-docker-compose -p model_trainer -f docker/model_trainer/docker-compose.yml up -d
+echo "Building and starting the Python Model Trainer container..."
 
-echo "⏳ Waiting for the container to be ready..."
-until docker exec model_trainer_container_name python --version &> /dev/null; do
-    sleep 2
-    echo "Still waiting..."
-done
+docker-compose -f docker/model_training/docker-compose.yml up --build
 
-echo "🚀 Running Python training script..."
-docker exec model_trainer_container_name python /app/train_model.py
+echo "Model training complete."
 
-echo "✅ Model training complete."
+echo "========================="
+echo "========================="
+echo "========================="
+echo ""
+echo ""
+echo ""
+
+echo "Cleaning up containers..."
+docker-compose -f docker/model_training/docker-compose.yml down
+
+echo "All cleaned up!"
+sleep 10

@@ -17,3 +17,8 @@ docker exec -i pg_geo psql -U postgres -d geo_db <<EOF
 EOF
 
 echo "✅ SQL transformation complete."
+
+echo "🧼 Cleaning up SQL Data Processing container..."
+docker-compose -p sql_data -f docker/sql_data_processing/docker-compose.yml down
+
+echo "🫧 All cleaned up!"
