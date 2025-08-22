@@ -177,30 +177,38 @@ SELECT
     md.dropoff_longitude, md.dropoff_latitude
   ) AS dist,
 
-  -- Initial bearing  
-  bearing_fn(
-    md.pickup_longitude, md.pickup_latitude,
-    md.dropoff_longitude, md.dropoff_latitude
-  ) AS bearing,
+  -- Bearing, but NULL if points are “close enough”
+  CASE
+    WHEN
+      ABS(md.pickup_longitude - md.dropoff_longitude)
+        <= 1e-8 + 1e-5 * ABS(md.dropoff_longitude)
+    AND ABS(md.pickup_latitude - md.dropoff_latitude)
+        <= 1e-8 + 1e-5 * ABS(md.dropoff_latitude)
+    THEN NULL
+    ELSE bearing_fn(
+      md.pickup_longitude, md.pickup_latitude,
+      md.dropoff_longitude, md.dropoff_latitude
+    )
+  END AS bearing,
 
   -- Distance from/to JFK
   haversine_fn(
     md.pickup_longitude, md.pickup_latitude,
-   -73.778889,           40.639722
+    -73.778889, 40.639722
   ) AS jfk_dist_pick,
   haversine_fn(
     md.dropoff_longitude, md.dropoff_latitude,
-   -73.778889,            40.639722
+    -73.778889, 40.639722
   ) AS jfk_dist_drop,
 
   -- Distance from/to LGA
   haversine_fn(
     md.pickup_longitude, md.pickup_latitude,
-   -73.872611,            40.777250
+    -73.872611, 40.777250
   ) AS lg_dist_pick,
   haversine_fn(
     md.dropoff_longitude, md.dropoff_latitude,
-   -73.872611,            40.777250
+    -73.872611, 40.777250
   ) AS lg_dist_drop
 
 FROM merged_data md;
@@ -267,42 +275,73 @@ CREATE INDEX ON time_features(date);
 -- ===============================================================================
 -- ===============================================================================
 
+CREATE OR REPLACE FUNCTION parse_dayfirst_date(txt TEXT)
+RETURNS DATE
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+AS $$
+DECLARE
+  parts TEXT[];
+BEGIN
+  -- split on common delimiters: dash, slash or dot
+  parts := regexp_split_to_array(txt, '[-/.]');
+  -- only proceed if we got exactly 3 pieces
+  IF array_length(parts,1) = 3 THEN
+    -- if first piece is 4 digits, assume it's year-first (YYYY-MM-DD)
+    IF length(parts[1]) = 4 THEN
+      RETURN make_date(
+        parts[1]::INT,  -- year
+        parts[2]::INT,  -- month
+        parts[3]::INT   -- day
+      );
+    ELSE
+      -- otherwise assume day-first (DD-MM-YYYY)
+      RETURN make_date(
+        parts[3]::INT,  -- year
+        parts[2]::INT,  -- month
+        parts[1]::INT   -- day
+      );
+    END IF;
+  END IF;
+  RETURN NULL;
+END;
+$$;
 
-DROP TABLE IF EXISTS weather_raw;
 
-CREATE TABLE weather_raw (
+DROP TABLE IF EXISTS weather_staging;
+
+CREATE TABLE weather_staging  (
   date                  TEXT,
-  maximum_temperature   INTEGER,
-  minimum_temperature   INTEGER,
-  average_temperature   DOUBLE PRECISION,
+  "maximum temperature" INTEGER,
+  "minimum temperature" INTEGER,
+  "average temperature" DOUBLE PRECISION,
   precipitation         TEXT,
-  snow_fall             TEXT,
-  snow_depth            TEXT
+  "snow fall"           TEXT,
+  "snow depth"          TEXT
 );
 
-COPY weather_raw
+COPY weather_staging
   FROM '/data/weather.csv'
   WITH (FORMAT CSV, HEADER);
 
-
-
+DROP TABLE IF EXISTS weather_raw;
+CREATE TABLE weather_raw AS
+SELECT
+  date,
+  "maximum temperature"   AS maximum_temperature,
+  "minimum temperature"   AS minimum_temperature,
+  "average temperature"   AS average_temperature,
+  precipitation,
+  "snow fall"             AS snow_fall,
+  "snow depth"            AS snow_depth
+FROM weather_staging;
 
 
 DROP TABLE IF EXISTS weather_features;
-
-
 CREATE TABLE weather_features AS
 SELECT
-  CASE
-    WHEN weather_raw.date ~ '^\d{4}-\d{1,2}-\d{1,2}$'
-    THEN TO_DATE(weather_raw.date, 'YYYY-MM-DD')
-    
-    WHEN weather_raw.date ~ '^\d{1,2}-\d{1,2}-\d{4}$'
-    THEN TO_DATE(weather_raw.date, 'FMDD-FMMM-YYYY')
-    
-    ELSE NULL
-  END AS date,
-
+  parse_dayfirst_date(weather_raw.date) AS date,
   COALESCE(NULLIF(weather_raw.precipitation, 'T')::NUMERIC, 0.01) AS rain,
   COALESCE(NULLIF(weather_raw.snow_fall,      'T')::NUMERIC, 0.01) AS s_fall,
   COALESCE(NULLIF(weather_raw.snow_depth,     'T')::NUMERIC, 0.01) AS s_depth,
@@ -311,21 +350,16 @@ SELECT
    + COALESCE(NULLIF(weather_raw.snow_fall,   'T')::NUMERIC, 0.01)
   ) AS all_precip,
 
-  CASE
-    WHEN COALESCE(NULLIF(weather_raw.snow_fall,  'T')::NUMERIC, 0.01) > 0
-      OR COALESCE(NULLIF(weather_raw.snow_depth, 'T')::NUMERIC, 0.01) > 0
-    THEN 1 ELSE 0
-  END AS has_snow,
+  CASE WHEN COALESCE(NULLIF(weather_raw.snow_fall, 'T')::NUMERIC, 0.01) > 0
+        OR COALESCE(NULLIF(weather_raw.snow_depth, 'T')::NUMERIC, 0.01) > 0
+    THEN 1 ELSE 0 END AS has_snow,
 
-  CASE
-    WHEN COALESCE(NULLIF(weather_raw.precipitation, 'T')::NUMERIC, 0.01) > 0
-    THEN 1 ELSE 0
-  END AS has_rain,
-
+  CASE WHEN COALESCE(NULLIF(weather_raw.precipitation, 'T')::NUMERIC, 0.01) > 0
+    THEN 1 ELSE 0 END AS has_rain,
+    
   weather_raw.maximum_temperature AS max_temp,
   weather_raw.minimum_temperature AS min_temp,
   weather_raw.average_temperature AS avg_temp
-
 FROM weather_raw;
 
 CREATE INDEX ON weather_features(date);
@@ -367,36 +401,38 @@ COPY fr_raw
 
 
 DROP TABLE IF EXISTS route_features;
-
 CREATE TABLE route_features AS
 SELECT
   id,
   total_distance,
   total_travel_time,
 
-  -- convert m/s to km/h
-  (total_distance / NULLIF(total_travel_time, 0)) * 3.6 AS fastest_speed,
+  -- Python‐style infinite speed when travel_time=0
+  CASE
+    WHEN total_travel_time = 0
+    THEN 'Infinity'::FLOAT8
+    ELSE (total_distance / total_travel_time) * 3.6
+  END AS fastest_speed,
 
   number_of_steps,
 
-  -- count 'left' turns
-  ((LENGTH(LOWER(step_direction))
-    - LENGTH(REPLACE(LOWER(step_direction), 'left', '')))
+  -- left/right/turns with NULL→'' → 0 matches Python .fillna('')
+  ((LENGTH(COALESCE(LOWER(step_direction), ''))
+    - LENGTH(REPLACE(COALESCE(LOWER(step_direction), ''), 'left','')))
    / LENGTH('left'))::INT AS left_turns,
 
-  -- count 'right' turns
-  ((LENGTH(LOWER(step_direction))
-    - LENGTH(REPLACE(LOWER(step_direction), 'right', '')))
+  ((LENGTH(COALESCE(LOWER(step_direction), ''))
+    - LENGTH(REPLACE(COALESCE(LOWER(step_direction), ''), 'right','')))
    / LENGTH('right'))::INT AS right_turns,
 
-  -- count all 'turn' maneuvers
-  ((LENGTH(LOWER(step_maneuvers))
-    - LENGTH(REPLACE(LOWER(step_maneuvers), 'turn', '')))
+  ((LENGTH(COALESCE(LOWER(step_maneuvers), ''))
+    - LENGTH(REPLACE(COALESCE(LOWER(step_maneuvers), ''), 'turn','')))
    / LENGTH('turn'))::INT AS turns
 
 FROM fr_raw;
 
 CREATE INDEX ON route_features(id);
+
 
 
 
@@ -507,6 +543,16 @@ CREATE INDEX ON final_features(date);
 -- ===============================================================================
 -- ===============================================================================
 
+CREATE OR REPLACE FUNCTION isfinite(double precision)
+  RETURNS boolean
+  LANGUAGE sql
+  IMMUTABLE
+AS $$
+  SELECT  $1 = $1
+       AND $1 <>  'Infinity'::double precision
+       AND $1 <> '-Infinity'::double precision;
+$$;
+
 
 -- 1) Drop old exports if you re-run
 DROP TABLE IF EXISTS df_train_full;
@@ -605,7 +651,9 @@ SELECT
 FROM final_features
 WHERE dset = 'test';
 
+
 -- 4) Build the “clean” training set with your filters + log1p transform
+DROP TABLE IF EXISTS df_clean;
 CREATE TABLE df_clean AS
 SELECT
   passenger_count,
@@ -613,7 +661,6 @@ SELECT
   pickup_latitude,
   dropoff_longitude,
   dropoff_latitude,
-  -- log1p(trip_duration)
   LN(trip_duration::DOUBLE PRECISION + 1) AS trip_duration,
   month,
   hour,
@@ -649,13 +696,24 @@ SELECT
   store_and_fwd_flag_0,
   total_distance,
   total_travel_time
-FROM df_train_full
-WHERE 
-  trip_duration < 86400
-  AND jfk_dist_pick < 300000
-  AND jfk_dist_drop < 300000
-  AND bearing IS NOT NULL
-  AND bearing <> 'Infinity';
+FROM final_features
+WHERE
+  dset = 'train'
+  AND trip_duration <     86400
+  AND jfk_dist_pick   < 300000
+  AND jfk_dist_drop   < 300000
+
+  -- drop any NULLs
+  AND passenger_count     IS NOT NULL
+  AND pickup_longitude    IS NOT NULL                                    -- repeat for each required column
+
+  -- drop any infinite values
+  AND isfinite(bearing)
+  AND isfinite(fastest_speed)
+  AND isfinite(dist)
+  AND isfinite(turns)
+  -- etc.
+;
 
 
 -- 5) Optional: add indexes to speed up downstream queries
