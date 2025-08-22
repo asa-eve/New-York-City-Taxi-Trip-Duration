@@ -7,6 +7,6 @@ services:
       dockerfile: run_training.dockerfile
     container_name: model_trainer
     volumes:
-      - ../data:/data
-      - ../output:/output
+      - .../data:/data
+      - .../output:/output
     tty: true

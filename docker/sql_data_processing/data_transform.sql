@@ -554,58 +554,9 @@ AS $$
 $$;
 
 
--- 1) Drop old exports if you re-run
-DROP TABLE IF EXISTS df_train_full;
 DROP TABLE IF EXISTS df_clean;
 DROP TABLE IF EXISTS df_test;
 
--- 2) Export the full training set (drops cols2drop)
-CREATE TABLE df_train_full AS
-SELECT
-  passenger_count,
-  pickup_longitude,
-  pickup_latitude,
-  dropoff_longitude,
-  dropoff_latitude,
-  LN(trip_duration::DOUBLE PRECISION + 1) AS trip_duration,
-  month,
-  hour,
-  wday,
-  minute,
-  minute_oftheday,
-  work,
-  blizzard,
-  rain,
-  s_fall,
-  s_depth,
-  all_precip,
-  has_snow,
-  has_rain,
-  max_temp,
-  min_temp,
-  fastest_speed,
-  number_of_steps,
-  left_turns,
-  right_turns,
-  turns,
-  dist,
-  bearing,
-  jfk_dist_pick,
-  jfk_dist_drop,
-  lg_dist_pick,
-  lg_dist_drop,
-  jfk_trip,
-  lg_trip,
-  vendor_id_1,
-  vendor_id_2,
-  store_and_fwd_flag_1,
-  store_and_fwd_flag_0,
-  total_distance,
-  total_travel_time
-FROM final_features
-WHERE dset = 'train';
-
--- 3) Export the raw test set
 CREATE TABLE df_test AS
 SELECT
   passenger_count,
@@ -649,8 +600,9 @@ SELECT
   total_distance,
   total_travel_time
 FROM final_features
-WHERE dset = 'test';
-
+WHERE
+  dset = 'test'
+;
 
 -- 4) Build the “clean” training set with your filters + log1p transform
 DROP TABLE IF EXISTS df_clean;
@@ -712,12 +664,10 @@ WHERE
   AND isfinite(fastest_speed)
   AND isfinite(dist)
   AND isfinite(turns)
-  -- etc.
 ;
 
 
 -- 5) Optional: add indexes to speed up downstream queries
-CREATE INDEX ON df_train_full(trip_duration);
 CREATE INDEX ON df_clean(trip_duration);
 CREATE INDEX ON df_test(month);
 CREATE INDEX ON df_test(hour);
@@ -729,17 +679,12 @@ CREATE INDEX ON df_test(hour);
 -- ===============================================================================
 
 
--- Export df_train_full to CSV
-COPY df_train_full
-  TO '/data/df_train_full.csv'
-  WITH (FORMAT CSV, HEADER);
-
 -- Export df_clean to CSV
 COPY df_clean
-  TO '/data/df_clean.csv'
+  TO '/data/df_sql_processed.csv'
   WITH (FORMAT CSV, HEADER);
 
 -- Export df_test to CSV
 COPY df_test
-  TO '/data/df_test.csv'
+  TO '/data/df_sql_processed_TEST.csv'
   WITH (FORMAT CSV, HEADER);

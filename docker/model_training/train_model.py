@@ -16,7 +16,7 @@ from sklearn.metrics import mean_squared_error
 
 def train_model():
 
-    df_clean_SQL = pd.read_csv('../data/df_clean.csv')
+    df_clean_SQL = pd.read_csv('.../data/df_sql_processed.csv')
 
     train_part, valid = train_test_split(df_clean_SQL, train_size=0.8, random_state=4321)
     X_train = train_part.drop(columns=['trip_duration'])

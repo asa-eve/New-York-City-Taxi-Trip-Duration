@@ -12,5 +12,5 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ../data:/data
+      - ../../data:/data
       - ./data_transform.sql:/docker-entrypoint-initdb.d/data_transform.sql
