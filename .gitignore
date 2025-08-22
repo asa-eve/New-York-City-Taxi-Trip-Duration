@@ -193,3 +193,4 @@ data/df_test.csv
 data/df_train_full.csv
 sql/init - Copy.sql
 /tmp_data
+data/test.csv

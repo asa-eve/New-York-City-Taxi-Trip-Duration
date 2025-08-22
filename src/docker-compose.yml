@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  model_trainer:
+    build:
+      context: .
+      dockerfile: run_training.dockerfile
+    container_name: model_trainer
+    volumes:
+      - ../data:/data
+      - ../output:/output
+    tty: true
