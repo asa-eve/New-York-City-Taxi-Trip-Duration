@@ -1,7 +1,7 @@
 # 🗽 New York City Taxi Trip Duration
 
 
-## Running
+## 💻 Running
 1. Clone repository
     - `git clone https://github.com/asa-eve/New-York-City-Taxi-Trip-Duration.git`
 2. Prepare data
