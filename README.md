@@ -5,14 +5,15 @@
 1. Clone repository
     - `git clone https://github.com/asa-eve/New-York-City-Taxi-Trip-Duration.git`
 2. Prepare data
-    - download competition datasets from official
-    - get hands on external datasets
-      - [Weather dataset in NYC 2016](https://www.kaggle.com/datasets/mathijs/weather-data-in-new-york-city-2016)
-      - estimate of the fastest routes for each trip using Open Source Routing Machine (will require some internet searching)
+    - [competition dataset](https://www.kaggle.com/competitions/nyc-taxi-trip-duration/data)
+    - external datasets
+      - [Weather dataset for NYC 2016](https://www.kaggle.com/datasets/mathijs/weather-data-in-new-york-city-2016)
+      - Fastest Routes dataset (estimates for each trip using Open Source Routing Machine) - requires searching
           - in some sense creates "leaking", due to features like `speed` and `distance` (which give strong relation to `trip duration`)
           - **NOTE**: in reality, this dataset can be seen as "past collected data", to make more accurate predictions in the present
 3. Lauching (Git Bash & Jupyter)
-   - either using `.sh` files, or by following notebooks
+   - GitBash + Docker - using `.sh` scripts
+   - Jupyter - following notebooks
 
 ## 📃 File Structure
 ```
@@ -89,7 +90,7 @@ After EDA (non-linear feature relationships) it became obvious - that regression
 
 ## 📈 Exploratory Data Analysis (EDA)
 Very helpful [notebook to follow in R](https://www.kaggle.com/code/headsortails/nyc-taxi-eda-update-the-fast-the-curious/report).
-Good insights:
+
 ### 1. **Simple visualization**
    - most of the trips are around Manhatten (notable places are airports - JFK & La Guardia)
        - from January to July of 2016 
