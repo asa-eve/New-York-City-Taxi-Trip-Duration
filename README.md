@@ -68,7 +68,7 @@ After EDA (non-linear feature relationships) it became obvious - that regression
 
 ### This result is top 1% ([of all public scores](https://www.kaggle.com/competitions/nyc-taxi-trip-duration/leaderboard?tab=public)).
 
-## Data preprocessing (result of EDA)
+## ⛓ Data preprocessing (result of EDA)
 1. **Geospatial features**
    - `bearing`
    - `haversine distance` for dropoff/pickup - dropoff/pickup distance to JFK and LG airports
