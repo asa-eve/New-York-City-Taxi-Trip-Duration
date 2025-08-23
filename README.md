@@ -108,19 +108,20 @@ Good insights:
    - `fast` dominate non-work hours & weekends | `slow` dominate work-hours, weekdays and airport flags
      
 ## Data preprocessing (result of EDA)
-1. Geospatial features
-   - `bearing`, `haversine distance` (of dropoff/pickup & to JFK and LG airports) 
-2. Temporal features
+1. **Geospatial features**
+   - `bearing`
+   - `haversine distance` for dropoff/pickup - dropoff/pickup distance to JFK and LG airports
+2. **Temporal features**
    - `month`, `week day`, `hour`, `minute`, `minute of the day`, `work hours flag`
-3. Weather features (external dataset)
+3. **Weather features (external dataset)**
    - `blizard flag`, `rain`, `snow`, `snow depth`, `max temp`, `min temp`
-4. Fastest routes (external dataset)
-   - features taken - `fastest speed`, `left turns`, `right turns`, `turns`
-5. Final processing features
+4. **Fastest routes (external dataset)**
+   - `fastest speed`, `left turns`, `right turns`, `turns`
+5. **Final processing features**
    - One-hot-Encoding for `vendor_id` and `store_and_fwd_flag`
    - `jfk airport trip flag` (<2km away distance)
    - `lg airport trip flag` (<2km away distance)
-6. Additional cleaning
+6. **Additional cleaning**
    - removing 24 hour trips
    - removing San-Francisco trips (artifacts)
    - `trip duration` transformation (natural logarithm) - achieves normal distribution
