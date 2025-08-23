@@ -1,5 +1,8 @@
 # 🗽 New York City Taxi Trip Duration
 
+<div align="center">
+<img align="center" src=figs/header.png width="100%"/>
+</div>
 
 ## 💻 Running
 1. Clone repository
