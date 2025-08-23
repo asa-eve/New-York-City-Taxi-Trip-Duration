@@ -59,6 +59,15 @@ Predict the duration of taxi trips in New York City using features such as picku
 - `passenger_count`, `vendor_id`, `store_and_fwd_flag`
 - `trip_duration` (target variable)
 
+### **Weather** (external dataset)
+- `maximum temperature`, `minimum temperature`, `average temperature`
+- `precipitation`, `snow fall`, `snow depth`
+
+### **Fastest routes** (external dataset)
+- `starting_street`, `end_street`
+- `total_distance`, `total_travel_time`
+- `number_of_steps`, `street_for_each_step`, `distance_per_step`, `travel_time_per_step`, `step_maneuvers`, `step_direction`, `step_location_list`
+
 ## 🤖 Model Training & Results
 After EDA (non-linear feature relationships) it became obvious - that regression models will perform worse.
 
