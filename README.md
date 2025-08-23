@@ -55,6 +55,38 @@ Predict the duration of taxi trips in New York City using features such as picku
 - `passenger_count`, `vendor_id`, `store_and_fwd_flag`
 - `trip_duration` (target variable)
 
+## 🤖 Model Training & Results
+After EDA (non-linear feature relationships) it became obvious - that regression models will perform worse.
+
+  Model | RMSE
+  --- | --- 
+  `Ridge regression` (poly features) | 0.4150
+  `XGBoost` | 0.3494
+  `LightGBM` | 0.3485
+  `Stacking` (all 3) with `XGBoost` | 0.3459
+
+### This result is top 1% ([of all public scores](https://www.kaggle.com/competitions/nyc-taxi-trip-duration/leaderboard?tab=public)).
+
+## Data preprocessing (result of EDA)
+1. **Geospatial features**
+   - `bearing`
+   - `haversine distance` for dropoff/pickup - dropoff/pickup distance to JFK and LG airports
+2. **Temporal features**
+   - `month`, `week day`, `hour`, `minute`, `minute of the day`, `work hours flag`
+3. **Weather features (external dataset)**
+   - `blizard flag`, `rain`, `snow`, `snow depth`, `max temp`, `min temp`
+4. **Fastest routes (external dataset)**
+   - `fastest speed`, `left turns`, `right turns`, `turns`
+5. **Final processing features**
+   - One-hot-Encoding for `vendor_id` and `store_and_fwd_flag`
+   - `jfk airport trip flag` (<2km away distance)
+   - `lg airport trip flag` (<2km away distance)
+6. **Additional cleaning**
+   - removing 24 hour trips
+   - removing San-Francisco trips (artifacts)
+   - `trip duration` transformation (natural logarithm) - achieves normal distribution
+   - replacing infinity values with NaNs + dropping
+
 ## 📈 Exploratory Data Analysis (EDA)
 Very helpful [notebook to follow in R](https://www.kaggle.com/code/headsortails/nyc-taxi-eda-update-the-fast-the-curious/report).
 Good insights:
@@ -107,34 +139,5 @@ Good insights:
    - `fast / slow` speed density - slow pickups (around airports & adjacent areas) - fast pickups (Newark airport & outer Manhatten)
    - `fast` dominate non-work hours & weekends | `slow` dominate work-hours, weekdays and airport flags
      
-## Data preprocessing (result of EDA)
-1. **Geospatial features**
-   - `bearing`
-   - `haversine distance` for dropoff/pickup - dropoff/pickup distance to JFK and LG airports
-2. **Temporal features**
-   - `month`, `week day`, `hour`, `minute`, `minute of the day`, `work hours flag`
-3. **Weather features (external dataset)**
-   - `blizard flag`, `rain`, `snow`, `snow depth`, `max temp`, `min temp`
-4. **Fastest routes (external dataset)**
-   - `fastest speed`, `left turns`, `right turns`, `turns`
-5. **Final processing features**
-   - One-hot-Encoding for `vendor_id` and `store_and_fwd_flag`
-   - `jfk airport trip flag` (<2km away distance)
-   - `lg airport trip flag` (<2km away distance)
-6. **Additional cleaning**
-   - removing 24 hour trips
-   - removing San-Francisco trips (artifacts)
-   - `trip duration` transformation (natural logarithm) - achieves normal distribution
-   - replacing infinity values with NaNs + dropping
 
-## 🤖 Model Training & Results
-After EDA (non-linear feature relationships) it became obvious - that regression models will perform worse.
 
-  Model | RMSE
-  --- | --- 
-  `Ridge regression` (poly features) | 0.4150
-  `XGBoost` | 0.3494
-  `LightGBM` | 0.3485
-  `Stacking` (all 3) with `XGBoost` | 0.3459
-
-### This result is top 1% (of public scores).
