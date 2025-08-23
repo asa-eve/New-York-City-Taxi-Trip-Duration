@@ -68,10 +68,10 @@ Good insights:
    - `hour` vs. `number of pickups` - drops (4-5 am & 4-5 pm), probably working hours
 ### 2. **Feature relation** (with target)
    - `trip duration` vs. `hour/week day` - shows strong relation and influence
-   - `trip duration` vs. `passenger count` -
+   - `trip duration` vs. `passenger count` - occasional 0 passenger trips, `vendor 1` has all >24h trips, `vendor 2` has all >6 passenger trips, nearly identical median between vendors for 1-6 passengers 
    - `density` vs. `trip duration` (by vendor) - close medians (~660s mark), with `vendor 2` having heavier right tail inflating its mean value
    - `store and fwd flag` vs. `trip duration` - minimal difference in flags data 
-### 3. **Feature engineering**
+### 3. **Feature engineering** (`work`, `airport ride` flags)
    - `trip duration` vs. `direct distance` (calculated by Cosine law distance) -> duration rises with distance, 24h and <10m trips are artifacts
    - `trip duration` vs. `direct distance` filtered + log-log -> urban routing inefficiency (duration scales sub-linearly with distance for longer rides)
    - `avg speed` distribution -> centered at 15km/h (true for NYC), speed >50km/h (anomalies/noise)
@@ -86,7 +86,17 @@ Good insights:
    - `short distance / high speed` trips - cutoff by 100 km/h (most distances >100m, yet >1000km/h speeds appear)
    - `pickups/dropoff > 300km` from JFK airport - shows trips across San-Francisco -> obvious artifacts in data (NYC)
 ### 5. **External datasets features**
-   - 
+   - Weather dataset (not very useful)
+       - no clear rise in `median speed` for `rain / snow` flag
+       - biggest blizzard on Jan 23rd caused largest drop in volume & speed
+   - Fastest routes dataset
+       - median distance 2.8 km (~ 5 min)
+       - distance & travel time nearly linear (except at extremes)
+       - turns don't tell everything (travel time rises with number of steps)
+       - `actual duration` exceed `durations` of trips by a wide margin -> traffic delays
+       - `direct distances` slightly exceed `fastest routing distances` -> yet highly correlated
+       - `actual speed` vs. `fastest theoretical speed` -> theoretical <20 km/h (cluster at 15km/h), distinct peaks in theoretical speeds (25-30km/h, 40km/h) - speed-limit areas 
+       - new feature - `fastest speed` (`total distance` / `total travel time`)
 ### 6. **Correlation** (with target)
    - strongest - `distance` related features, `total travel time`
    - moderate - `airport flags`
@@ -96,6 +106,25 @@ Good insights:
    - `fast / slow` proportions by features - `slow` (airport flag, snow) - `fast` (weekends, off-work hours)
    - `fast / slow` speed density - slow pickups (around airports & adjacent areas) - fast pickups (Newark airport & outer Manhatten)
    - `fast` dominate non-work hours & weekends | `slow` dominate work-hours, weekdays and airport flags
+     
+## Data preprocessing (result of EDA)
+1. Geospatial features
+   - `bearing`, `haversine distance` (of dropoff/pickup & to JFK and LG airports) 
+2. Temporal features
+   - `month`, `week day`, `hour`, `minute`, `minute of the day`, `work hours flag`
+3. Weather features (external dataset)
+   - `blizard flag`, `rain`, `snow`, `snow depth`, `max temp`, `min temp`
+4. Fastest routes (external dataset)
+   - features taken - `fastest speed`, `left turns`, `right turns`, `turns`
+5. Final processing features
+   - One-hot-Encoding for `vendor_id` and `store_and_fwd_flag`
+   - `jfk airport trip flag` (<2km away distance)
+   - `lg airport trip flag` (<2km away distance)
+6. Additional cleaning
+   - removing 24 hour trips
+   - removing San-Francisco trips (artifacts)
+   - `trip duration` transformation (natural logarithm) - achieves normal distribution
+   - replacing infinity values with NaNs + dropping
 
 ## 🤖 Model Training & Results
 After EDA (non-linear feature relationships) it became obvious - that regression models will perform worse.
