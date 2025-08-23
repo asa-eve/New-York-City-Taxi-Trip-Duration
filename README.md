@@ -51,8 +51,7 @@ Predict the duration of taxi trips in New York City using features such as picku
 
 ### **Features**:
 - `pickup_datetime`, `dropoff_datetime`
-- `pickup_longitude`, `pickup_latitude`
-- `dropoff_longitude`, `dropoff_latitude`
+- `pickup_longitude`, `pickup_latitude`, `dropoff_longitude`, `dropoff_latitude`
 - `passenger_count`, `vendor_id`, `store_and_fwd_flag`
 - `trip_duration` (target variable)
 
@@ -71,12 +70,23 @@ Good insights:
    - `trip duration` vs. `hour/week day` - shows strong relation and influence
    - `trip duration` vs. `passenger count` -
    - `density` vs. `trip duration` (by vendor) - close medians (~660s mark), with `vendor 2` having heavier right tail inflating its mean value
-   - `store and fwd flag` vs. `trip duration` - minimal difference in flags data
+   - `store and fwd flag` vs. `trip duration` - minimal difference in flags data 
 ### 3. **Feature engineering**
-   - `trip duration` vs. `direct distance` (calculated by Cosine law distance)
+   - `trip duration` vs. `direct distance` (calculated by Cosine law distance) -> duration rises with distance, 24h and <10m trips are artifacts
+   - `trip duration` vs. `direct distance` filtered + log-log -> urban routing inefficiency (duration scales sub-linearly with distance for longer rides)
+   - `avg speed` distribution -> centered at 15km/h (true for NYC), speed >50km/h (anomalies/noise)
+   - `median speed` vs. `weekday/hour` -> distinct patterns for `work` hours 
+   - `bearing` vs. `duration / distance / speed` -> peaks for 30 & -150 degrees (Manhatten orientation)
+   - `pickup / dropoff` rates in JFK & LG airports -> 2 clusters around each airport (<2km) - could use as `airport flag` feature
+   - `JFK trips` vs. `LG trips` vs. `non-airport trips` -> airport proximity is a strong predictor for higher trip duration
 ### 4. **Anomalies detection & removal**
-   - test
+   - `>24 hour` trips - most of the trips are around Manhatten & align with airport routes -> unlikely 24h trips (low avg speed <0.05 km/h)
+   - map of `22-24 hour` trips - artifacts (rather than long rides)
+   - `zero distance` trips - set >5m (less are unlikely)
+   - `short distance / high speed` trips - cutoff by 100 km/h (most distances >100m, yet >1000km/h speeds appear)
+   - `pickups/dropoff > 300km` from JFK airport - shows trips across San-Francisco -> obvious artifacts in data (NYC)
 ### 5. **External datasets features**
+   - 
 ### 6. **Correlation** (with target)
    - strongest - `distance` related features, `total travel time`
    - moderate - `airport flags`
